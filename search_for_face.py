@@ -12,7 +12,7 @@ load_dotenv()
 # The name of the file whose face you want to search for in the database.
 # This file must have its embedding already calculated and stored in the database.
 # You can change this to any of your detected face files (e.g., 'bb_face_0.jpg' or 'jb_face_0.jpg').
-SEARCH_FILE_NAME = "pb_face_0.jpg"
+SEARCH_FILE_NAME = "jb_face_0.jpg"
 
 def get_embedding_from_db(conn, file_name):
     """
