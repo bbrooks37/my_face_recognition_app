@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Family Face Similarity</title>
+  
+  <!-- Tailwind CSS CDN for styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts for "Inter" font -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap">
+  
+  <!-- Lucide Icons for UI elements -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .animate-spin {
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
+    }
+    .modal-overlay {
+      background-color: rgba(0, 0, 0, 0.7);
+    }
+  </style>
+</head>
+<body class="bg-gray-900 text-gray-200 flex flex-col items-center justify-center min-h-screen p-4">
+
+  <div class="bg-gray-800 shadow-2xl rounded-3xl p-8 max-w-4xl w-full mx-auto">
+    <div class="text-center mb-10">
+      <h1 class="text-5xl font-extrabold tracking-tight text-white mb-2">
+        Family Face Similarity
+      </h1>
+      <p class="text-lg text-gray-400">
+        Upload two photos to compare their facial similarity.
+      </p>
+    </div>
+
+    <!-- Upload and Display Section -->
+    <div class="flex flex-col md:flex-row justify-center items-center gap-8 mb-8">
+      <!-- Image Upload 1 -->
+      <div class="flex flex-col items-center w-full md:w-1/2">
+        <label 
+          for="upload1" 
+          id="label1"
+          class="w-full h-64 border-4 border-dashed border-gray-600 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 hover:border-blue-500 hover:bg-gray-700"
+        >
+          <i data-lucide="upload-cloud" class="w-12 h-12 text-gray-500 mb-2" id="icon1"></i>
+          <span class="text-gray-500" id="text1">Upload First Image</span>
+        </label>
+        <input 
+          id="upload1" 
+          type="file" 
+          accept="image/*" 
+          class="hidden"
+        />
+      </div>
+
+      <!-- Image Upload 2 -->
+      <div class="flex flex-col items-center w-full md:w-1/2">
+        <label 
+          for="upload2" 
+          id="label2"
+          class="w-full h-64 border-4 border-dashed border-gray-600 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 hover:border-blue-500 hover:bg-gray-700"
+        >
+          <i data-lucide="upload-cloud" class="w-12 h-12 text-gray-500 mb-2" id="icon2"></i>
+          <span class="text-gray-500" id="text2">Upload Second Image</span>
+        </label>
+        <input 
+          id="upload2" 
+          type="file" 
+          accept="image/*" 
+          class="hidden"
+        />
+      </div>
+    </div>
+
+    <!-- Compare Button -->
+    <div class="flex justify-center mb-8">
+      <button
+        id="compareButton"
+        class="px-8 py-4 text-xl font-bold rounded-full transition-all duration-300 shadow-lg bg-gray-600 text-gray-400 cursor-not-allowed"
+        disabled
+      >
+        Compare Faces
+      </button>
+    </div>
+
+    <!-- Results Section -->
+    <div id="results" class="hidden bg-gray-700 rounded-2xl p-6 text-center shadow-lg transition-opacity duration-500 opacity-100">
+      <h3 class="text-3xl font-extrabold text-white mb-2">
+        Similarity Score
+      </h3>
+      <p id="scoreText" class="text-5xl font-extrabold text-blue-400 mb-2">
+        0.0000
+      </p>
+      <p class="text-gray-400">
+        A lower score indicates a closer resemblance.
+      </p>
+    </div>
+  </div>
+  
+  <!-- Custom Modal for Alerts -->
+  <div id="errorModal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-overlay transition-opacity duration-300">
+    <div class="bg-gray-800 rounded-xl shadow-lg p-8 m-4 max-w-sm w-full border border-gray-700">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-2xl font-bold text-white">Error</h3>
+        <button id="closeModal" class="text-gray-400 hover:text-white transition-colors">
+          <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+      </div>
+      <p id="modalMessage" class="text-gray-300 mb-6"></p>
+      <button id="okModal" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-colors">
+        OK
+      </button>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Get all necessary elements from the DOM
+      const upload1 = document.getElementById('upload1');
+      const upload2 = document.getElementById('upload2');
+      const label1 = document.getElementById('label1');
+      const label2 = document.getElementById('label2');
+      const compareButton = document.getElementById('compareButton');
+      const resultsDiv = document.getElementById('results');
+      const scoreText = document.getElementById('scoreText');
+      const errorModal = document.getElementById('errorModal');
+      const modalMessage = document.getElementById('modalMessage');
+      const closeModalButton = document.getElementById('closeModal');
+      const okModalButton = document.getElementById('okModal');
+
+      let image1 = null;
+      let image2 = null;
+
+      // Function to show the custom modal
+      const showModal = (message) => {
+        modalMessage.textContent = message;
+        errorModal.classList.remove('hidden');
+      };
+
+      // Function to hide the custom modal
+      const hideModal = () => {
+        errorModal.classList.add('hidden');
+      };
+
+      // Event listeners for the modal close buttons
+      closeModalButton.addEventListener('click', hideModal);
+      okModalButton.addEventListener('click', hideModal);
+
+      // Update the UI based on the selected file
+      const updateLabel = (file, label) => {
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            label.innerHTML = `<img src="${e.target.result}" alt="Uploaded Image" class="h-full w-full object-contain rounded-xl p-2" />`;
+          };
+          reader.readAsDataURL(file);
+        } else {
+          label.innerHTML = `
+            <i data-lucide="upload-cloud" class="w-12 h-12 text-gray-500 mb-2"></i>
+            <span class="text-gray-500">Upload Image</span>
+          `;
+          lucide.createIcons();
+        }
+      };
+
+      // Check if both images are uploaded to enable the button
+      const checkButtonState = () => {
+        if (image1 && image2) {
+          compareButton.disabled = false;
+          compareButton.classList.remove('bg-gray-600', 'text-gray-400', 'cursor-not-allowed');
+          compareButton.classList.add('bg-blue-600', 'text-white', 'hover:bg-blue-700', 'hover:shadow-xl');
+        } else {
+          compareButton.disabled = true;
+          compareButton.classList.remove('bg-blue-600', 'text-white', 'hover:bg-blue-700', 'hover:shadow-xl');
+          compareButton.classList.add('bg-gray-600', 'text-gray-400', 'cursor-not-allowed');
+        }
+      };
+
+      // Event listener for the first image upload
+      upload1.addEventListener('change', (e) => {
+        image1 = e.target.files[0];
+        updateLabel(image1, label1);
+        checkButtonState();
+        resultsDiv.classList.add('hidden');
+      });
+
+      // Event listener for the second image upload
+      upload2.addEventListener('change', (e) => {
+        image2 = e.target.files[0];
+        updateLabel(image2, label2);
+        checkButtonState();
+        resultsDiv.classList.add('hidden');
+      });
+
+      // Event listener for the compare button
+      compareButton.addEventListener('click', async () => {
+        if (!image1 || !image2) {
+          showModal("Please upload two images to compare.");
+          return;
+        }
+
+        // Set button to loading state
+        compareButton.disabled = true;
+        compareButton.innerHTML = `<i data-lucide="refresh-ccw" class="w-6 h-6 animate-spin"></i>`;
+        lucide.createIcons();
+        resultsDiv.classList.add('hidden');
+
+        try {
+          // The fetch URL is relative, assuming your Flask server is running on the same domain.
+          // If you run it on a different port, you may need to specify the full URL,
+          // e.g., `http://localhost:5000/api/compare-faces`
+          const formData = new FormData();
+          formData.append('image1', image1);
+          formData.append('image2', image2);
+
+          const response = await fetch('/api/compare-faces', {
+            method: 'POST',
+            body: formData
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+          }
+          const result = await response.json();
+          
+          // Update the UI with the real score from your back-end
+          scoreText.textContent = result.score.toFixed(4);
+          resultsDiv.classList.remove('hidden');
+
+        } catch (error) {
+          console.error('Error during face comparison:', error);
+          showModal(error.message || 'An error occurred. Please try again.');
+        } finally {
+          // Reset button state
+          compareButton.disabled = false;
+          compareButton.innerHTML = 'Compare Faces';
+          checkButtonState();
+        }
+      });
+
+      // Initially create icons for the static elements
+      lucide.createIcons();
+    });
+  </script>
+</body>
+</html>

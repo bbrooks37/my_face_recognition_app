@@ -10,7 +10,7 @@ load_dotenv()
 
 # Define the two files you want to compare.
 # You can change these to any two file names you have in your database.
-FILE_NAME_1 = "bb_face_0.jpg"
+FILE_NAME_1 = "cw_face_0.jpg"
 FILE_NAME_2 = "jb_face_0.jpg"
 
 def get_embedding_from_db(conn, file_name):

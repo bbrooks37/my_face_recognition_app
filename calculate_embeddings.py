@@ -16,8 +16,9 @@ import psycopg2
 from dotenv import load_dotenv
 
 # The directory where your image files are located.
-# In this case, it's the current directory.
-image_directory = '.'
+# The script was incorrectly looking in the current directory, but the
+# face images are in the 'detected_faces' subdirectory.
+image_directory = 'detected_faces'
 
 # A counter to keep track of the number of embeddings calculated.
 embedding_count = 0
@@ -29,8 +30,9 @@ embeddings_to_save = []
 print("Starting to calculate embeddings for detected faces...")
 
 for filename in os.listdir(image_directory):
-    # We are looking for files that end with '_face_0.jpg' as saved by the face-detector.
-    if filename.endswith('_face_0.jpg'):
+    # We are looking for files that end with '_face_#.jpg' as saved by the face-detector.
+    # This regex pattern will match any face file, not just the first one.
+    if "_face_" in filename and filename.endswith('.jpg'):
         try:
             # Load the face image from its file.
             file_path = os.path.join(image_directory, filename)
